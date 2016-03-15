@@ -2,7 +2,7 @@ require_relative './frank_sinatra/app'
 
 # proxy through top-level API calls to global app
 def self.method_missing(method, *args, &block)
-  if [:get].include?(method)
+  if [:get, :not_found].include?(method)
     @app.send(method, *args, &block)
   else
     super

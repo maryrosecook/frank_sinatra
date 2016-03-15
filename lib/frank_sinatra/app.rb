@@ -1,25 +1,37 @@
 require 'rack'
+require 'pp'
 
 module FrankSinatra
   class App
     def initialize
       @routes = []
+      @_404_block = Proc.new do
+        Rack::Response.new(["Not found"], 404, {'Content-Type' => 'text/html'})
+      end
     end
 
     def get(path, &route_block)
-      @routes << Route.new(:GET, path, route_block)
+      add_route(:GET, path, route_block)
+    end
+
+    def not_found(&block)
+      @_404_block = block
+    end
+
+    def add_route(method, path, route_block)
+      @routes << Route.new(method, path, route_block)
+    end
+
+    def get_route_block(request)
+      route = @routes.find do |route|
+        route.matches?(request.request_method, request.path)
+      end
+
+      route ? route.block : @_404_block
     end
 
     def call(env)
-      method = env["REQUEST_METHOD"]
-      path = env["REQUEST_PATH"]
-      route = @routes.find { |route| route.matches?(method, path) }
-
-      if route
-        route.block.call
-      else
-        [404, {'Content-Type' => 'text/html'}, ["Not found"]]
-      end
+      get_route_block(Rack::Request.new(env)).call
     end
 
     def start
