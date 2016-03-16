@@ -1,14 +1,21 @@
 require_relative './frank_sinatra/app'
 
-# proxy through top-level API calls to global app
-def self.method_missing(method, *args, &block)
-  if [:get, :not_found].include?(method)
-    @app.send(method, *args, &block)
-  else
-    super
+module FrankSinatra
+  module Proxy
+
+    # create and start global app
+    app = FrankSinatra::App.new
+    at_exit { app.start }
+
+    # create proxies for each FrankSinatra API method that execute on
+    # global app
+    [:get, :not_found].each do |api_method_name|
+      define_method(api_method_name) do |*args, &block|
+        app.send(api_method_name, *args, &block)
+      end
+    end
   end
 end
 
-# create and start global app
-@app = FrankSinatra::App.new
-at_exit { @app.start }
+# write proxy API methods onto main
+extend FrankSinatra::Proxy

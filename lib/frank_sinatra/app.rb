@@ -11,6 +11,8 @@ module FrankSinatra
     end
 
     def get(path, &route_block)
+      puts path
+      puts route_block
       add_route(:GET, path, route_block)
     end
 
